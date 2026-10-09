@@ -1,4 +1,5 @@
 import { comparisonMarkup, startComparison } from './comparison.js';
+import { beamSearchMarkup, renderBeamStage, BEAM_CAPTIONS, BEAM_MILESTONES } from './beam-search.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -10,7 +11,7 @@ const catalog = [
 ];
 const hashes = ['#semantic-ids', '#generate', '#compare'];
 const labels = ['From content to codes', 'One code at a time', 'Three routes to candidates'];
-const durations = [4100, 9400, 5600];
+const durations = [4100, 11300, 5600];
 const milestones = [0, 1700, 3700, 5700, 7800];
 const captions = [
   'Read the sequence of items in the user’s history.',
@@ -26,10 +27,16 @@ let elapsed = 0;
 let playing = false;
 let lastFrame = 0;
 let decoderStage = -1;
+let decoderMode = 'beam';
 let comparisonCleanup = () => {};
 let resumeAfterDialog = false;
 
 $('#comparison-mount').innerHTML = comparisonMarkup();
+$('#beam-search-view').innerHTML = beamSearchMarkup();
+
+function decoderMilestones() { return decoderMode === 'beam' ? BEAM_MILESTONES : milestones; }
+function decoderCaptions() { return decoderMode === 'beam' ? BEAM_CAPTIONS : captions; }
+function lastDecoderStage() { return decoderMilestones().length - 1; }
 
 function renderCatalog() {
   const selected = catalog[selectedItem];
@@ -58,6 +65,9 @@ function setPlaying(value) {
 function renderDecoder(stage) {
   if (decoderStage === stage) return;
   decoderStage = stage;
+  if (decoderMode === 'beam') {
+    renderBeamStage(stage);
+  } else {
   $$('.generated-token').forEach((token,i) => {
     const filled = stage > i;
     token.classList.toggle('filled', filled);
@@ -67,9 +77,26 @@ function renderDecoder(stage) {
   $('.generation-column').classList.toggle('has-output', stage > 0);
   $('#lookup-result').classList.toggle('visible', stage === 4);
   $('#lookup-result').setAttribute('aria-hidden', stage === 4 ? 'false' : 'true');
-  $('#decode-step').textContent = `${String(stage + 1).padStart(2, '0')} / 05`;
-  $('#decode-caption').textContent = captions[stage];
-  $('#step-button').innerHTML = stage === 4 ? 'Start again <span aria-hidden="true">↺</span>' : 'Next step <span aria-hidden="true">→</span>';
+  }
+  $('#decode-step').textContent = `${String(stage + 1).padStart(2, '0')} / ${String(lastDecoderStage() + 1).padStart(2, '0')}`;
+  $('#decode-caption').textContent = decoderCaptions()[stage];
+  $('#step-button').innerHTML = stage === lastDecoderStage() ? 'Start again <span aria-hidden="true">↺</span>' : 'Next step <span aria-hidden="true">→</span>';
+}
+
+function setDecoderMode(mode, autoplay = true) {
+  decoderMode = mode;
+  const beam = mode === 'beam';
+  durations[1] = beam ? 11300 : 9400;
+  labels[1] = beam ? 'Expand · score · keep the best' : 'One code at a time';
+  $('#single-path-view').hidden = beam;
+  $('#beam-search-view').hidden = !beam;
+  $('#beam-width-label').hidden = !beam;
+  $$('[data-decoder-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.decoderMode === mode)));
+  $('#decoder-title').textContent = beam ? 'Keep a few promising paths.' : 'Predict a code. Then the next.';
+  $('#decoder-description').textContent = beam ? 'Beam search expands the surviving prefixes, then keeps the best three across all branches.' : 'The Transformer uses the user’s history and the codes it has already generated.';
+  $('#decoder-takeaway').innerHTML = beam ? 'One history. Several generated IDs. <strong>A shortlist of existing catalog items.</strong>' : 'Generate the <strong>address</strong>, then look up the item. <span class="muted">The product already exists.</span>';
+  if (sceneIndex === 1) $('#playback-label').textContent = labels[1];
+  restart(autoplay);
 }
 
 function restart(autoplay = true) {
@@ -89,7 +116,7 @@ function restart(autoplay = true) {
   if (sceneIndex === 2) comparisonCleanup = startComparison($('#comparison-mount'));
   if (reducedMotion.matches) {
     elapsed = durations[sceneIndex];
-    if (sceneIndex === 1) renderDecoder(4);
+    if (sceneIndex === 1) renderDecoder(lastDecoderStage());
     setPlaying(false);
   } else setPlaying(autoplay);
 }
@@ -113,7 +140,7 @@ function selectScene(index, {focus = false, updateHash = true} = {}) {
 function frame(now) {
   if (playing && !document.hidden) {
     elapsed += Math.min(now - lastFrame, 150);
-    if (sceneIndex === 1) renderDecoder(milestones.reduce((stage,time,i) => elapsed >= time ? i : stage, 0));
+    if (sceneIndex === 1) renderDecoder(decoderMilestones().reduce((stage,time,i) => elapsed >= time ? i : stage, 0));
     if (elapsed >= durations[sceneIndex]) setPlaying(false);
   }
   lastFrame = now;
@@ -138,6 +165,7 @@ $('#next-chapter').addEventListener('click', () => selectScene(sceneIndex + 1));
 $('#prev-chapter').addEventListener('click', () => selectScene(sceneIndex - 1));
 $('#replay-button').addEventListener('click', () => restart());
 $('#play-toggle').addEventListener('click', togglePlayback);
+$$('[data-decoder-mode]').forEach(button => button.addEventListener('click', () => setDecoderMode(button.dataset.decoderMode)));
 $('#present-toggle').addEventListener('click', () => {
   const active = document.body.classList.toggle('presenting');
   $('#present-toggle').setAttribute('aria-pressed', String(active));
@@ -146,8 +174,8 @@ $('#present-toggle').addEventListener('click', () => {
 });
 $('#step-button').addEventListener('click', () => {
   setPlaying(false);
-  const stage = decoderStage === 4 ? 0 : decoderStage + 1;
-  elapsed = milestones[stage];
+  const stage = decoderStage === lastDecoderStage() ? 0 : decoderStage + 1;
+  elapsed = decoderMilestones()[stage];
   renderDecoder(stage);
 });
 window.addEventListener('hashchange', () => { const index = hashes.indexOf(location.hash); if (index !== -1) selectScene(index, {updateHash:false}); });
@@ -205,5 +233,6 @@ fetch('./presenter-notes.md').then(response => {
 }).catch(() => { $('#notes-content').innerHTML = '<p>The notes could not be loaded. Use the download link above to open the script directly.</p>'; });
 
 renderCatalog();
+labels[1] = 'Expand · score · keep the best';
 selectScene(Math.max(0, hashes.indexOf(location.hash)), {updateHash:false});
 requestAnimationFrame(frame);
