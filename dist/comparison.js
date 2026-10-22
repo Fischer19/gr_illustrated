@@ -14,15 +14,16 @@ function history(id, label = 'Recent items') {
 }
 
 function result(id) {
-  return `<g class="cmp-result"><rect x="88" y="194" width="124" height="34" rx="17" fill="${palette.lime}"/><use href="#${id}-shoe" x="98" y="197" width="30" height="25" style="color:${palette.ink}"/><text x="135" y="216" class="cmp-svg-label">Candidate</text></g>`;
+  return `<g class="cmp-result"><rect x="88" y="239" width="124" height="34" rx="17" fill="${palette.lime}"/><use href="#${id}-shoe" x="98" y="242" width="30" height="25" style="color:${palette.ink}"/><text x="135" y="261" class="cmp-svg-label">Candidate</text></g>`;
 }
 
 function signalDiagram() {
   const id = 'cmp-signal';
-  return `<svg class="cmp-diagram" viewBox="0 0 300 235" role="img" aria-labelledby="${id}-title ${id}-desc">
-    <title id="${id}-title">Item-to-item signal retrieval</title><desc id="${id}-desc">A recently viewed item connects to other items through co-view and co-purchase signals. Strong connections provide similar-item candidates. Edge weights are illustrative.</desc>
+  return `<svg class="cmp-diagram" viewBox="0 0 300 280" role="img" aria-labelledby="${id}-title ${id}-desc">
+    <title id="${id}-title">Item-to-item signal retrieval</title><desc id="${id}-desc">A recently viewed item's atomic ID identifies its node in a graph of co-view and co-purchase signals. Strong connections provide similar-item candidates. Edge weights are illustrative.</desc>
     ${definitions(id)}${history(id, 'Recent item')}
     <path d="M150 46C150 61 90 58 90 81" class="cmp-flow cmp-flow-first" marker-end="url(#${id}-arrow)"/>
+    <text x="52" y="65" class="cmp-svg-label">atomic ID</text>
     <g class="cmp-network">
       <path d="M90 104L166 84M90 104L218 137M90 104L134 160M90 104L52 155M166 84L218 137M134 160L218 137" fill="none" stroke="${palette.line}" stroke-width="1.2"/>
       <path d="M90 104L166 84" fill="none" stroke="${palette.purple}" stroke-width="3" opacity=".45"/>
@@ -32,18 +33,19 @@ function signalDiagram() {
       <circle cx="166" cy="84" r="12" fill="#e6e4ee" stroke="${palette.purple}"/><circle cx="134" cy="160" r="12" fill="#eeeee5" stroke="${palette.muted}"/><circle cx="52" cy="155" r="9" fill="#eeeee5" stroke="${palette.muted}"/>
       <g class="cmp-selected-node"><circle cx="218" cy="137" r="18" fill="${palette.lime}" stroke="${palette.ink}" stroke-width="1.25"/><use href="#${id}-shoe" x="204" y="125" width="28" height="23"/></g>
     </g>
-    <path d="M218 158C218 177 150 172 150 189" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
+    <path d="M218 158C218 204 150 204 150 234" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
     ${result(id)}
   </svg>`;
 }
 
 function annDiagram() {
   const id = 'cmp-ann';
-  return `<svg class="cmp-diagram" viewBox="0 0 300 235" role="img" aria-labelledby="${id}-title ${id}-desc">
-    <title id="${id}-title">Approximate nearest-neighbor retrieval</title><desc id="${id}-desc">An encoder turns recent activity into a query vector. Search finds nearby stored item vectors and returns candidate items. The two-dimensional space is illustrative.</desc>
+  return `<svg class="cmp-diagram" viewBox="0 0 300 280" role="img" aria-labelledby="${id}-title ${id}-desc">
+    <title id="${id}-title">Approximate nearest-neighbor retrieval</title><desc id="${id}-desc">An encoder turns recent activity into a vector embedding, shown as [.2, .8, …], for the query. Search finds nearby stored item vectors and returns candidate items. The two-dimensional space is illustrative.</desc>
     ${definitions(id)}${history(id)}
     <path d="M150 46V57" class="cmp-flow cmp-flow-first" marker-end="url(#${id}-arrow)"/>
-    <g class="cmp-query-vector"><rect x="99" y="61" width="102" height="23" rx="7" fill="#e6e4ee"/><text x="150" y="77" text-anchor="middle" class="cmp-svg-mono">[.2, .8, …]</text></g>
+    <g class="cmp-query-vector"><rect x="83" y="61" width="134" height="42" rx="7" fill="#e6e4ee"/><text x="150" y="77" text-anchor="middle" class="cmp-svg-label">Vector embedding</text><text x="150" y="93" text-anchor="middle" class="cmp-svg-mono">[.2, .8, …]</text></g>
+    <g transform="translate(0 20)">
     <text x="68" y="101" class="cmp-svg-small">item vectors</text>
     <path d="M64 109V175H235" fill="none" stroke="${palette.line}" stroke-width="1.15"/>
     <g fill="${palette.muted}"><circle cx="88" cy="124" r="4"/><circle cx="115" cy="110" r="4"/><circle cx="96" cy="157" r="4"/><circle cx="130" cy="148" r="4"/><circle cx="220" cy="109" r="4"/><circle cx="219" cy="159" r="4"/><circle cx="201" cy="170" r="4"/><circle cx="113" cy="168" r="4"/></g>
@@ -51,27 +53,35 @@ function annDiagram() {
     <g fill="${palette.purple}"><circle cx="153" cy="128" r="4"/><circle cx="180" cy="152" r="4"/></g>
     <g class="cmp-ann-query"><circle cx="174" cy="131" r="7" fill="${palette.paper}"/><path d="M174 126V136M169 131H179" stroke="${palette.ink}" stroke-width="2" stroke-linecap="round"/><text x="161" y="117" class="cmp-svg-small">query</text></g>
     <circle class="cmp-selected-node" cx="187" cy="124" r="6" fill="${palette.lime}" stroke="${palette.ink}" stroke-width="1.1"/>
-    <path d="M187 132C203 166 150 170 150 189" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
+    </g>
+    <path d="M187 152C203 200 150 214 150 234" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
     ${result(id)}
   </svg>`;
 }
 
 function generativeDiagram() {
   const id = 'cmp-gr';
-  return `<svg class="cmp-diagram" viewBox="0 0 300 235" role="img" aria-labelledby="${id}-title ${id}-desc">
-    <title id="${id}-title">Generative retrieval</title><desc id="${id}-desc">A transformer decoder uses recent activity to predict an item's semantic ID one token at a time: 12, then 07, then 42. The complete valid ID maps to a catalog item.</desc>
+  return `<svg class="cmp-diagram" viewBox="0 0 300 280" role="img" aria-labelledby="${id}-title ${id}-desc">
+    <title id="${id}-title">Generative retrieval</title><desc id="${id}-desc">Recent items are mapped to an ordered list of semantic IDs: 12 · 19 · 08, then 12 · 07 · 43. This ID sequence is sent to a transformer decoder to predict the next item's semantic ID one token at a time: 12, then 07, then 42. The complete valid ID maps to a catalog item.</desc>
     ${definitions(id)}${history(id)}
-    <path d="M150 46V67" class="cmp-flow cmp-flow-first" marker-end="url(#${id}-arrow)"/>
-    <g class="cmp-decoder"><rect x="87" y="76" width="134" height="42" rx="9" fill="#ded9eb"/><rect x="83" y="72" width="134" height="42" rx="9" fill="#eeebf3" stroke="${palette.purple}" stroke-width="1.2"/><text x="150" y="98" text-anchor="middle" class="cmp-svg-label">Decoder</text></g>
-    <path d="M150 119V132" class="cmp-flow cmp-flow-middle" marker-end="url(#${id}-arrow)"/>
-    <g class="cmp-tokens">
-      <g class="cmp-token cmp-token-one"><rect x="62" y="138" width="48" height="33" rx="8" fill="#e6e4ee"/><text x="86" y="160" text-anchor="middle" class="cmp-svg-token">12</text></g>
-      <path d="M115 154H124" class="cmp-token cmp-token-two cmp-token-arrow" marker-end="url(#${id}-arrow)"/>
-      <g class="cmp-token cmp-token-two"><rect x="129" y="138" width="48" height="33" rx="8" fill="#e6e4ee"/><text x="153" y="160" text-anchor="middle" class="cmp-svg-token">07</text></g>
-      <path d="M182 154H191" class="cmp-token cmp-token-three cmp-token-arrow" marker-end="url(#${id}-arrow)"/>
-      <g class="cmp-token cmp-token-three"><rect x="196" y="138" width="48" height="33" rx="8" fill="${palette.purple}"/><text x="220" y="160" text-anchor="middle" class="cmp-svg-token" fill="white">42</text></g>
+    <path d="M150 46V57" class="cmp-flow cmp-flow-first" marker-end="url(#${id}-arrow)"/>
+    <g class="cmp-history-ids">
+      <rect x="83" y="62" width="134" height="51" rx="8" fill="#e6e4ee"/>
+      <text x="150" y="76" text-anchor="middle" class="cmp-svg-label">Semantic IDs</text>
+      <text x="150" y="91" text-anchor="middle" class="cmp-svg-mono">[12 · 19 · 08,</text>
+      <text x="150" y="104" text-anchor="middle" class="cmp-svg-mono">12 · 07 · 43]</text>
     </g>
-    <path d="M153 174V189" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
+    <path d="M150 116V127" class="cmp-flow cmp-flow-ids" marker-end="url(#${id}-arrow)"/>
+    <g class="cmp-decoder"><rect x="87" y="136" width="134" height="32" rx="9" fill="#ded9eb"/><rect x="83" y="132" width="134" height="32" rx="9" fill="#eeebf3" stroke="${palette.purple}" stroke-width="1.2"/><text x="150" y="153" text-anchor="middle" class="cmp-svg-label">Decoder</text></g>
+    <path d="M150 169V181" class="cmp-flow cmp-flow-middle" marker-end="url(#${id}-arrow)"/>
+    <g class="cmp-tokens">
+      <g class="cmp-token cmp-token-one"><rect x="62" y="187" width="48" height="33" rx="8" fill="#e6e4ee"/><text x="86" y="209" text-anchor="middle" class="cmp-svg-token">12</text></g>
+      <path d="M115 203H124" class="cmp-token cmp-token-two cmp-token-arrow" marker-end="url(#${id}-arrow)"/>
+      <g class="cmp-token cmp-token-two"><rect x="129" y="187" width="48" height="33" rx="8" fill="#e6e4ee"/><text x="153" y="209" text-anchor="middle" class="cmp-svg-token">07</text></g>
+      <path d="M182 203H191" class="cmp-token cmp-token-three cmp-token-arrow" marker-end="url(#${id}-arrow)"/>
+      <g class="cmp-token cmp-token-three"><rect x="196" y="187" width="48" height="33" rx="8" fill="${palette.purple}"/><text x="220" y="209" text-anchor="middle" class="cmp-svg-token" fill="white">42</text></g>
+    </g>
+    <path d="M153 223V234" class="cmp-flow cmp-flow-last" marker-end="url(#${id}-arrow)"/>
     ${result(id)}
   </svg>`;
 }
@@ -97,14 +107,16 @@ const styles = `<style>
   .cmp-note span:last-child { color:#4a5340; }
   .comparison-running .cmp-history { animation:cmp-enter .45s ease both; }
   .comparison-running .cmp-flow-first { stroke-dasharray:180; animation:cmp-draw 1.2s .25s ease both; }
-  .comparison-running .cmp-network, .comparison-running .cmp-query-vector, .comparison-running .cmp-decoder { animation:cmp-enter .55s 1s ease both; }
+  .comparison-running .cmp-network, .comparison-running .cmp-query-vector, .comparison-running .cmp-history-ids { animation:cmp-enter .55s 1s ease both; }
+  .comparison-running .cmp-flow-ids { stroke-dasharray:20; animation:cmp-draw .4s 1.25s ease both; }
+  .comparison-running .cmp-decoder { animation:cmp-enter .4s 1.5s ease both; }
   .comparison-running .cmp-signal-edge { stroke-dasharray:150; animation:cmp-draw 1.8s 1.5s ease both; }
   .comparison-running .cmp-selected-node { transform-box:fill-box; transform-origin:center; animation:cmp-select .6s 3.3s ease both; }
   .comparison-running .cmp-ann-query { animation:cmp-enter .55s 1.7s ease both; }
   .comparison-running .cmp-search-radius { transform-box:fill-box; transform-origin:center; animation:cmp-radius 1.3s 2s ease both; }
-  .comparison-running .cmp-flow-middle { stroke-dasharray:20; animation:cmp-draw .5s 1.5s ease both; }
+  .comparison-running .cmp-flow-middle { stroke-dasharray:20; animation:cmp-draw .4s 1.75s ease both; }
   .comparison-running .cmp-token { animation:cmp-enter .45s ease both; }
-  .comparison-running .cmp-token-one { animation-delay:1.9s; }
+  .comparison-running .cmp-token-one { animation-delay:2.1s; }
   .comparison-running .cmp-token-two { animation-delay:2.7s; }
   .comparison-running .cmp-token-three { animation-delay:3.5s; }
   .comparison-running .cmp-flow-last { stroke-dasharray:120; animation:cmp-draw .8s 4.05s ease both; }
@@ -121,9 +133,9 @@ const styles = `<style>
 /** Three comparable candidate-retrieval diagrams, with deliberately minimal copy. */
 export function comparisonMarkup() {
   return `${styles}<div class="comparison-grid" aria-label="Three approaches to candidate retrieval">
-    <article class="method"><div class="cmp-method-top"><h3>Item-to-item signals</h3><span class="cmp-index">01</span></div><p class="cmp-description">Follow co-views and co-purchases.</p>${signalDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Observed item connections</span></p><p class="cmp-note"><span>Needs</span><span>Enough shared behavior</span></p></div></article>
-    <article class="method"><div class="cmp-method-top"><h3>Vector search (ANN)</h3><span class="cmp-index">02</span></div><p class="cmp-description">Find approximate nearest neighbors.</p>${annDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Similarity in embedding space</span></p><p class="cmp-note"><span>Needs</span><span>A stored vector index</span></p></div></article>
-    <article class="method"><div class="cmp-method-top"><h3>Generative retrieval</h3><span class="cmp-index">03</span></div><p class="cmp-description">Predict an item’s address.</p>${generativeDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Sequential ID prediction</span></p><p class="cmp-note"><span>Needs</span><span>Valid IDs → catalog items</span></p></div></article>
+    <article class="method"><div class="cmp-method-top"><h3>Signal-based Retrieval</h3><span class="cmp-index">01</span></div><p class="cmp-description">Follow co-views and co-purchases.</p>${signalDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Historical user behavior (co-view, co-purchase)</span></p><p class="cmp-note"><span>Needs</span><span>Enough shared behavior</span></p></div></article>
+    <article class="method"><div class="cmp-method-top"><h3>Embedding-based Retrieval</h3><span class="cmp-index">02</span></div><p class="cmp-description">Find approximate nearest neighbors.</p>${annDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Similarity in embedding space</span></p><p class="cmp-note"><span>Needs</span><span>A stored vector index</span></p></div></article>
+    <article class="method"><div class="cmp-method-top"><h3>Generative Retrieval</h3><span class="cmp-index">03</span></div><p class="cmp-description">Predict an item’s address.</p>${generativeDiagram()}<div class="cmp-notes"><p class="cmp-note"><span>Uses</span><span>Sequential ID prediction</span></p><p class="cmp-note"><span>Needs</span><span>Valid IDs → catalog items</span></p></div></article>
   </div>`;
 }
 

@@ -1,17 +1,15 @@
+import { catalog } from './catalog.js';
 import { comparisonMarkup, startComparison } from './comparison.js';
-import { beamSearchMarkup, renderBeamStage, BEAM_CAPTIONS, BEAM_MILESTONES } from './beam-search.js';
+import { beamSearchMarkup, renderBeamStage, beamCaptions, BEAM_MILESTONES, BEAM_DURATION } from './beam-search.js';
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
-const catalog = [
-  { name: 'Trail runner', symbol: 'shoe', color: '#d8ef62', id: ['12','07','42'] },
-  { name: 'Light trail shoe', symbol: 'shoe', color: '#b6c9ac', id: ['12','07','43'] },
-  { name: 'Hiking boot', symbol: 'boot', color: '#dba477', id: ['12','19','08'] },
-  { name: 'Headphones', symbol: 'headphones', color: '#b6a6d7', id: ['31','05','11'] },
-];
-const hashes = ['#semantic-ids', '#generate', '#compare'];
-const labels = ['From content to codes', 'One code at a time', 'Three routes to candidates'];
-const durations = [4100, 11300, 5600];
+const COMPARE_SCENE = 0;
+const SEMANTIC_SCENE = 1;
+const DECODER_SCENE = 2;
+const hashes = ['#compare', '#semantic-ids', '#generate'];
+const labels = ['Three routes to candidates', 'From content to codes', 'Expand · score · keep the best'];
+const durations = [5600, 4100, 11300];
 const milestones = [0, 1700, 3700, 5700, 7800];
 const captions = [
   'Read the sequence of items in the user’s history.',
@@ -28,14 +26,15 @@ let playing = false;
 let lastFrame = 0;
 let decoderStage = -1;
 let decoderMode = 'beam';
+let beamWidth = 3;
 let comparisonCleanup = () => {};
 let resumeAfterDialog = false;
 
 $('#comparison-mount').innerHTML = comparisonMarkup();
-$('#beam-search-view').innerHTML = beamSearchMarkup();
+$('#beam-search-view').innerHTML = beamSearchMarkup(beamWidth);
 
 function decoderMilestones() { return decoderMode === 'beam' ? BEAM_MILESTONES : milestones; }
-function decoderCaptions() { return decoderMode === 'beam' ? BEAM_CAPTIONS : captions; }
+function decoderCaptions() { return decoderMode === 'beam' ? beamCaptions(beamWidth) : captions; }
 function lastDecoderStage() { return decoderMilestones().length - 1; }
 
 function renderCatalog() {
@@ -45,6 +44,8 @@ function renderCatalog() {
   $('#source-symbol').setAttribute('href', `#${selected.symbol}-symbol`);
   $('#product-stage svg').style.setProperty('--shoe-color', selected.color);
   $$('#semantic-tokens .token').forEach((token,i) => { token.textContent = selected.id[i]; });
+  $('#item-address-comparison').classList.toggle('has-category', selectedItem === 0);
+  $('#category-example').hidden = selectedItem !== 0;
   $('#catalog-insight').innerHTML = selectedItem < 2
     ? 'Related shoes share <b>12 · 07</b>.<br> The last code distinguishes the item.'
     : selectedItem === 2
@@ -86,16 +87,16 @@ function renderDecoder(stage) {
 function setDecoderMode(mode, autoplay = true) {
   decoderMode = mode;
   const beam = mode === 'beam';
-  durations[1] = beam ? 11300 : 9400;
-  labels[1] = beam ? 'Expand · score · keep the best' : 'One code at a time';
+  durations[DECODER_SCENE] = beam ? BEAM_DURATION : 9400;
+  labels[DECODER_SCENE] = beam ? 'Expand · score · keep the best' : 'One code at a time';
   $('#single-path-view').hidden = beam;
   $('#beam-search-view').hidden = !beam;
   $('#beam-width-label').hidden = !beam;
   $$('[data-decoder-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.decoderMode === mode)));
   $('#decoder-title').textContent = beam ? 'Keep a few promising paths.' : 'Predict a code. Then the next.';
-  $('#decoder-description').textContent = beam ? 'Beam search expands the surviving prefixes, then keeps the best three across all branches.' : 'The Transformer uses the user’s history and the codes it has already generated.';
+  $('#decoder-description').textContent = beam ? `Beam search expands the surviving prefixes, then keeps the best ${beamWidth} across all branches.` : 'The Transformer uses the user’s history and the codes it has already generated.';
   $('#decoder-takeaway').innerHTML = beam ? 'One history. Several generated IDs. <strong>A shortlist of existing catalog items.</strong>' : 'Generate the <strong>address</strong>, then look up the item. <span class="muted">The product already exists.</span>';
-  if (sceneIndex === 1) $('#playback-label').textContent = labels[1];
+  if (sceneIndex === DECODER_SCENE) $('#playback-label').textContent = labels[DECODER_SCENE];
   restart(autoplay);
 }
 
@@ -108,15 +109,15 @@ function restart(autoplay = true) {
   flow.classList.remove('encoding');
   output.classList.remove('encoding');
   void flow.offsetWidth;
-  if (sceneIndex === 0) {
+  if (sceneIndex === SEMANTIC_SCENE) {
     flow.classList.add('encoding');
     output.classList.add('encoding');
   }
   renderDecoder(0);
-  if (sceneIndex === 2) comparisonCleanup = startComparison($('#comparison-mount'));
+  if (sceneIndex === COMPARE_SCENE) comparisonCleanup = startComparison($('#comparison-mount'));
   if (reducedMotion.matches) {
     elapsed = durations[sceneIndex];
-    if (sceneIndex === 1) renderDecoder(lastDecoderStage());
+    if (sceneIndex === DECODER_SCENE) renderDecoder(lastDecoderStage());
     setPlaying(false);
   } else setPlaying(autoplay);
 }
@@ -130,7 +131,7 @@ function selectScene(index, {focus = false, updateHash = true} = {}) {
   $$('.scene').forEach((scene,i) => { scene.hidden = i !== sceneIndex; });
   $('#chapter-count').innerHTML = `${String(sceneIndex + 1).padStart(2,'0')} <span>/ 03</span>`;
   $('#prev-chapter').disabled = sceneIndex === 0;
-  $('#next-chapter').disabled = sceneIndex === 2;
+  $('#next-chapter').disabled = sceneIndex === hashes.length - 1;
   $('#playback-label').textContent = labels[sceneIndex];
   if (updateHash) history.replaceState(null, '', hashes[sceneIndex]);
   if (focus) $$('.scene-tabs [role=tab]')[sceneIndex].focus();
@@ -140,7 +141,7 @@ function selectScene(index, {focus = false, updateHash = true} = {}) {
 function frame(now) {
   if (playing && !document.hidden) {
     elapsed += Math.min(now - lastFrame, 150);
-    if (sceneIndex === 1) renderDecoder(decoderMilestones().reduce((stage,time,i) => elapsed >= time ? i : stage, 0));
+    if (sceneIndex === DECODER_SCENE) renderDecoder(decoderMilestones().reduce((stage,time,i) => elapsed >= time ? i : stage, 0));
     if (elapsed >= durations[sceneIndex]) setPlaying(false);
   }
   lastFrame = now;
@@ -166,11 +167,10 @@ $('#prev-chapter').addEventListener('click', () => selectScene(sceneIndex - 1));
 $('#replay-button').addEventListener('click', () => restart());
 $('#play-toggle').addEventListener('click', togglePlayback);
 $$('[data-decoder-mode]').forEach(button => button.addEventListener('click', () => setDecoderMode(button.dataset.decoderMode)));
-$('#present-toggle').addEventListener('click', () => {
-  const active = document.body.classList.toggle('presenting');
-  $('#present-toggle').setAttribute('aria-pressed', String(active));
-  $('#present-toggle').innerHTML = active ? 'Exit presentation <span aria-hidden="true">↙</span>' : 'Present <span aria-hidden="true">⤢</span>';
-  window.scrollTo({top:0, behavior:'instant'});
+$('#beam-width').addEventListener('change', event => {
+  beamWidth = Number(event.target.value);
+  $('#beam-search-view').innerHTML = beamSearchMarkup(beamWidth);
+  setDecoderMode('beam');
 });
 $('#step-button').addEventListener('click', () => {
   setPlaying(false);
@@ -200,7 +200,6 @@ function openDialog(id) {
   setPlaying(false);
   $(`#${id}`).showModal();
 }
-$('#notes-open').addEventListener('click', () => openDialog('notes-dialog'));
 $('#sources-open').addEventListener('click', () => openDialog('sources-dialog'));
 $$('[data-close]').forEach(button => button.addEventListener('click', () => $(`#${button.dataset.close}`).close()));
 $$('dialog').forEach(dialog => {
@@ -211,28 +210,6 @@ $$('dialog').forEach(dialog => {
   });
 });
 
-function inlineMarkdown(text) {
-  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g,'<em>$1</em>');
-}
-fetch('./presenter-notes.md').then(response => {
-  if (!response.ok) throw new Error('Notes unavailable');
-  return response.text();
-}).then(text => {
-  $('#notes-content').innerHTML = text.trim().split(/\r?\n\s*\r?\n/).map(block => {
-    if (block.startsWith('# ')) return '';
-    if (/^\*\*\d:\d\d/.test(block)) {
-      const [heading, ...rest] = block.split(/\r?\n/);
-      return `<h3>${inlineMarkdown(heading)}</h3><blockquote>${inlineMarkdown(rest.join(' '))}</blockquote>`;
-    }
-    if (block.startsWith('*Technical basis:')) return `<p class="muted" style="font-size:11px">${inlineMarkdown(block)}</p>`;
-    return `<p>${inlineMarkdown(block).replace(/ {2}\r?\n/g,'<br>')}</p>`;
-  }).join('');
-}).catch(() => { $('#notes-content').innerHTML = '<p>The notes could not be loaded. Use the download link above to open the script directly.</p>'; });
-
 renderCatalog();
-labels[1] = 'Expand · score · keep the best';
 selectScene(Math.max(0, hashes.indexOf(location.hash)), {updateHash:false});
 requestAnimationFrame(frame);
